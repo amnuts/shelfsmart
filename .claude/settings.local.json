@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx @react-native-community/cli init ShelfSmart --template react-native-template-typescript --skip-git)",
+      "Bash(where node:*)",
+      "Bash(where npm:*)",
+      "Bash(where npx:*)"
+    ]
+  }
+}
