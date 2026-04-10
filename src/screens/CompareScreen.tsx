@@ -251,7 +251,7 @@ const styles = StyleSheet.create({
   warningBanner: {
     marginTop: 16,
     marginLeft: 18,
-    backgroundColor: 'transparent',
+    backgroundColor: '#FFFFFF',
     borderRadius: 12,
     borderWidth: 2,
     borderColor: '#4D9DC4',
@@ -285,14 +285,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   warningTextBold: {
-    color: '#92400E',
+    color: '#000000',
     fontSize: 14,
     fontWeight: '700',
     textAlign: 'center',
     marginBottom: 4,
   },
   warningText: {
-    color: '#92400E',
+    color: '#000000',
     fontSize: 12,
     fontWeight: '500',
     textAlign: 'center',
