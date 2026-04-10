@@ -189,7 +189,25 @@ const CompareScreen: React.FC = () => {
           </Text>
         </TouchableOpacity>
 
-        {showWarning && (
+      </ScrollView>
+
+      {showWarning && (
+        <Animated.View
+          style={[
+            styles.dimOverlay,
+            {
+              opacity: warningAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, 0.4],
+              }),
+            },
+          ]}
+          pointerEvents="none"
+        />
+      )}
+
+      {showWarning && (
+        <View style={styles.warningContainer} pointerEvents="box-none">
           <Animated.View
             style={[
               styles.warningBanner,
@@ -217,8 +235,8 @@ const CompareScreen: React.FC = () => {
               </Text>
             </View>
           </Animated.View>
-        )}
-      </ScrollView>
+        </View>
+      )}
     </SafeAreaView>
   );
 };
@@ -248,8 +266,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: '600',
   },
+  dimOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#000000',
+  },
+  warningContainer: {
+    ...StyleSheet.absoluteFillObject,
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    top: '72%',
+  },
   warningBanner: {
-    marginTop: 16,
     marginLeft: 18,
     backgroundColor: '#FFFFFF',
     borderRadius: 12,
