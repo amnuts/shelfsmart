@@ -1,4 +1,4 @@
-import React, {useState, useRef, useCallback} from 'react';
+import React, {useState, useRef, useCallback, useEffect} from 'react';
 import {
   View,
   Text,
@@ -6,12 +6,10 @@ import {
   ScrollView,
   StyleSheet,
   Animated,
-  Platform,
   TextInput,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import ProductCard from '../components/ProductCard';
-import PercentageBadge from '../components/PercentageBadge';
 import {useTheme} from '../context/ThemeContext';
 
 const getCurrencySymbol = (): string => {
@@ -50,9 +48,6 @@ const CompareScreen: React.FC = () => {
   const [unitsA, setUnitsA] = useState('');
   const [priceB, setPriceB] = useState('');
   const [unitsB, setUnitsB] = useState('');
-  const resultAnim = useRef(new Animated.Value(0)).current;
-  const [showResult, setShowResult] = useState(false);
-
   const priceARef = useRef<TextInput>(null);
   const unitsARef = useRef<TextInput>(null);
   const priceBRef = useRef<TextInput>(null);
@@ -85,33 +80,51 @@ const CompareScreen: React.FC = () => {
     return {perUnitA, perUnitB, winner, percentage};
   }, [priceA, unitsA, priceB, unitsB]);
 
-  const result = calculate();
+  const [result, setResult] = useState<ComparisonResult | null>(null);
+  const [showWarning, setShowWarning] = useState(false);
+  const warningAnim = useRef(new Animated.Value(0)).current;
 
-  // Animate result in/out
-  React.useEffect(() => {
-    if (result && !showResult) {
-      setShowResult(true);
-      Animated.timing(resultAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-    } else if (!result && showResult) {
-      Animated.timing(resultAnim, {
+  const BIG_DIFFERENCE_THRESHOLD = 50;
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setResult(calculate());
+    }, 400);
+    return () => clearTimeout(timer);
+  }, [calculate]);
+
+  // Show warning after an extra delay for large differences
+  useEffect(() => {
+    const isBigDifference =
+      result !== null && result.percentage >= BIG_DIFFERENCE_THRESHOLD;
+
+    if (isBigDifference && !showWarning) {
+      const timer = setTimeout(() => {
+        setShowWarning(true);
+        Animated.timing(warningAnim, {
+          toValue: 1,
+          duration: 300,
+          useNativeDriver: true,
+        }).start();
+      }, 400);
+      return () => clearTimeout(timer);
+    } else if (!isBigDifference && showWarning) {
+      Animated.timing(warningAnim, {
         toValue: 0,
         duration: 200,
         useNativeDriver: true,
-      }).start(() => setShowResult(false));
+      }).start(() => setShowWarning(false));
     }
-  }, [result, showResult, resultAnim]);
+  }, [result, showWarning, warningAnim]);
 
   const handleClear = () => {
     setPriceA('');
     setUnitsA('');
     setPriceB('');
     setUnitsB('');
-    setShowResult(false);
-    resultAnim.setValue(0);
+    setResult(null);
+    setShowWarning(false);
+    warningAnim.setValue(0);
     priceARef.current?.focus();
   };
 
@@ -119,6 +132,13 @@ const CompareScreen: React.FC = () => {
     if (!result) return null;
     if (result.winner === 'equal') return 'equal' as const;
     return result.winner === product ? ('winner' as const) : ('loser' as const);
+  };
+
+  const getStampPercentage = (product: 'A' | 'B'): number | undefined => {
+    if (!result) return undefined;
+    if (result.winner === 'equal') return result.percentage;
+    if (result.winner === product) return result.percentage;
+    return undefined;
   };
 
   return (
@@ -136,32 +156,13 @@ const CompareScreen: React.FC = () => {
           onUnitsChange={setUnitsA}
           perUnit={result ? formatPerUnit(result.perUnitA) : undefined}
           resultState={getResultState('A')}
+          stampPercentage={getStampPercentage('A')}
           currencySymbol={currencySymbol}
           priceRef={priceARef}
           unitsRef={unitsARef}
           onPriceSubmit={() => unitsARef.current?.focus()}
           onUnitsSubmit={() => priceBRef.current?.focus()}
         />
-
-        {showResult && result && (
-          <Animated.View
-            style={{
-              opacity: resultAnim,
-              transform: [
-                {
-                  translateY: resultAnim.interpolate({
-                    inputRange: [0, 1],
-                    outputRange: [20, 0],
-                  }),
-                },
-              ],
-            }}>
-            <PercentageBadge
-              winner={result.winner}
-              percentage={result.percentage}
-            />
-          </Animated.View>
-        )}
 
         <ProductCard
           label="Product B"
@@ -171,6 +172,7 @@ const CompareScreen: React.FC = () => {
           onUnitsChange={setUnitsB}
           perUnit={result ? formatPerUnit(result.perUnitB) : undefined}
           resultState={getResultState('B')}
+          stampPercentage={getStampPercentage('B')}
           currencySymbol={currencySymbol}
           priceRef={priceBRef}
           unitsRef={unitsBRef}
@@ -186,6 +188,36 @@ const CompareScreen: React.FC = () => {
             Clear
           </Text>
         </TouchableOpacity>
+
+        {showWarning && (
+          <Animated.View
+            style={[
+              styles.warningBanner,
+              {
+                opacity: warningAnim,
+                transform: [
+                  {
+                    translateY: warningAnim.interpolate({
+                      inputRange: [0, 1],
+                      outputRange: [60, 0],
+                    }),
+                  },
+                ],
+              },
+            ]}>
+            <View style={[styles.warningEmoji, {backgroundColor: '#4D9DC4'}]}>
+              <Text style={styles.warningEmojiText}>?</Text>
+            </View>
+            <View style={styles.warningContent}>
+              <Text style={styles.warningTextBold}>
+                Wow, that's a big difference!
+              </Text>
+              <Text style={styles.warningText}>
+                Probably worth double-checking your numbers?
+              </Text>
+            </View>
+          </Animated.View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -215,6 +247,55 @@ const styles = StyleSheet.create({
   clearButtonText: {
     fontSize: 16,
     fontWeight: '600',
+  },
+  warningBanner: {
+    marginTop: 16,
+    marginLeft: 18,
+    backgroundColor: 'transparent',
+    borderRadius: 12,
+    borderWidth: 2,
+    borderColor: '#4D9DC4',
+    paddingLeft: 50,
+    paddingRight: 16,
+    paddingVertical: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  warningEmoji: {
+    position: 'absolute',
+    left: -27,
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    alignItems: 'center',
+    justifyContent: 'center',
+    elevation: 4,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.25,
+    shadowRadius: 3,
+    opacity: 1,
+  },
+  warningEmojiText: {
+    fontSize: 38,
+    fontWeight: '800',
+    color: '#FFFFFF',
+  },
+  warningContent: {
+    flex: 1,
+  },
+  warningTextBold: {
+    color: '#92400E',
+    fontSize: 14,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: 4,
+  },
+  warningText: {
+    color: '#92400E',
+    fontSize: 12,
+    fontWeight: '500',
+    textAlign: 'center',
   },
 });
 

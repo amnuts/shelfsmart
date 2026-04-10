@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
+    "emulator": "D:/tools/android-sdk/emulator/emulator -avd Pixel_10_Pro",
     "android": "react-native run-android",
     "ios": "react-native run-ios",
     "start": "react-native start",
@@ -10,6 +11,7 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native/metro-config": "^0.85.0",
     "@react-navigation/bottom-tabs": "^6.5.20",
     "@react-navigation/native": "^6.1.18",
     "react": "18.2.0",

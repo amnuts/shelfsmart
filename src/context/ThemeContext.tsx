@@ -24,6 +24,11 @@ interface Colors {
   inputBackground: string;
   inputText: string;
   currencyText: string;
+  receiptBackground: string;
+  receiptText: string;
+  receiptTextSecondary: string;
+  receiptDash: string;
+  receiptInputBackground: string;
 }
 
 interface ThemeContextValue {
@@ -53,6 +58,11 @@ const lightColors: Colors = {
   inputBackground: '#FFFFFF',
   inputText: '#1F2937',
   currencyText: '#6B7280',
+  receiptBackground: '#FFFEF7',
+  receiptText: '#2D2A26',
+  receiptTextSecondary: '#8C8478',
+  receiptDash: '#D4CFC6',
+  receiptInputBackground: '#F5F3ED',
 };
 
 const darkColors: Colors = {
@@ -76,6 +86,11 @@ const darkColors: Colors = {
   inputBackground: '#4B5563',
   inputText: '#F9FAFB',
   currencyText: '#9CA3AF',
+  receiptBackground: '#2A2722',
+  receiptText: '#E8E4DB',
+  receiptTextSecondary: '#9C9688',
+  receiptDash: '#4A453D',
+  receiptInputBackground: '#383430',
 };
 
 const ThemeContext = createContext<ThemeContextValue>({
