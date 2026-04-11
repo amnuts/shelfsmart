@@ -74,57 +74,51 @@ const formatPerUnit = (value: number): string => {
   return value.toFixed(4);
 };
 
-// Zigzag edge component
-// Top: triangles point UP (paper edge visible from above, background shows through gaps)
-// Bottom: triangles point DOWN (paper edge visible from below)
-const ZigzagEdge: React.FC<{color: string; position: 'top' | 'bottom'}> = ({color, position}) => {
-  const teeth = 35;
+// Torn receipt edge using CSS border-triangle technique
+const TOOTH_SIZE = 10;
+
+const TeethRow: React.FC<{color: string; direction: 'up' | 'down'}> = ({color, direction}) => {
+  const [width, setWidth] = React.useState(0);
+  const count = Math.ceil(width / TOOTH_SIZE);
+
+  const toothStyle = direction === 'up'
+    ? {
+        width: 0,
+        height: 0,
+        borderLeftWidth: TOOTH_SIZE / 2,
+        borderRightWidth: TOOTH_SIZE / 2,
+        borderBottomWidth: TOOTH_SIZE / 2,
+        borderLeftColor: 'transparent' as const,
+        borderRightColor: 'transparent' as const,
+        borderBottomColor: color,
+      }
+    : {
+        width: 0,
+        height: 0,
+        borderLeftWidth: TOOTH_SIZE / 2,
+        borderRightWidth: TOOTH_SIZE / 2,
+        borderTopWidth: TOOTH_SIZE / 2,
+        borderLeftColor: 'transparent' as const,
+        borderRightColor: 'transparent' as const,
+        borderTopColor: color,
+      };
+
   return (
-    <View style={zigzagStyles.container}>
-      <View style={zigzagStyles.row}>
-        {Array.from({length: teeth}).map((_, i) => (
-          <View
-            key={i}
-            style={
-              position === 'top'
-                ? {
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 6,
-                    borderRightWidth: 6,
-                    borderBottomWidth: 6,
-                    borderStyle: 'solid' as const,
-                    borderBottomColor: color,
-                    borderLeftColor: 'transparent',
-                    borderRightColor: 'transparent',
-                  }
-                : {
-                    width: 0,
-                    height: 0,
-                    borderLeftWidth: 6,
-                    borderRightWidth: 6,
-                    borderTopWidth: 6,
-                    borderStyle: 'solid' as const,
-                    borderTopColor: color,
-                    borderLeftColor: 'transparent',
-                    borderRightColor: 'transparent',
-                  }
-            }
-          />
-        ))}
-      </View>
+    <View
+      style={teethStyles.container}
+      onLayout={(e) => setWidth(e.nativeEvent.layout.width)}>
+      {Array.from({length: count}).map((_, i) => (
+        <View key={i} style={toothStyle} />
+      ))}
     </View>
   );
 };
 
-const zigzagStyles = StyleSheet.create({
+const teethStyles = StyleSheet.create({
   container: {
-    overflow: 'hidden',
-    height: 6,
-  },
-  row: {
     flexDirection: 'row',
-    justifyContent: 'center',
+    alignSelf: 'stretch',
+    overflow: 'hidden',
   },
 });
 
@@ -232,12 +226,8 @@ const CompareScreen: React.FC = () => {
         keyboardShouldPersistTaps="handled">
 
         {/* Receipt paper */}
-        <View>
-          {/* Shadow layers */}
-          <View style={[styles.receiptShadow1, {backgroundColor: colors.receiptBackground}]} />
-
-          <ZigzagEdge color={colors.receiptBackground} position="top" />
-
+        <View style={styles.receiptOuterWrapper}>
+          <TeethRow color={colors.receiptBackground} direction="up" />
           <View style={[styles.receipt, {backgroundColor: colors.receiptBackground}]}>
             {/* Receipt header */}
             <Text style={[styles.shopName, {color: colors.receiptText}]}>
@@ -300,8 +290,7 @@ const CompareScreen: React.FC = () => {
               </Text>
             </TouchableOpacity>
           </View>
-
-          <ZigzagEdge color={colors.receiptBackground} position="bottom" />
+          <TeethRow color={colors.receiptBackground} direction="down" />
         </View>
       </ScrollView>
 
@@ -363,23 +352,18 @@ const styles = StyleSheet.create({
     padding: 24,
     paddingBottom: 40,
   },
-  // rgba(0, 0, 0, 0.18) 0px 2px 4px
-  receiptShadow1: {
-    position: 'absolute',
-    top: 6,
-    left: 0,
-    right: 0,
-    bottom: 6,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.98,
-    shadowRadius: 4,
-    elevation: 4,
-    borderRadius: 2,
+  receiptOuterWrapper: {
+    marginBottom: 8,
   },
   receipt: {
     paddingHorizontal: 20,
     paddingVertical: 8,
+    // Shadow on receipt body only — not visible between zigzag teeth
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 3},
+    shadowOpacity: 0.2,
+    shadowRadius: 4,
+    elevation: 4,
   },
   shopName: {
     fontSize: 26,
