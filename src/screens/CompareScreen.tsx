@@ -11,8 +11,14 @@ import {
   Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import ProductCard from '../components/ProductCard';
+import ProductSection from '../components/ProductSection';
 import {useTheme} from '../context/ThemeContext';
+
+const monoFont = Platform.select({
+  ios: 'Courier',
+  android: 'monospace',
+  default: 'monospace',
+});
 
 const localeToCurrency: Record<string, string> = {
   en_US: 'USD', en_GB: 'GBP', en_AU: 'AUD', en_CA: 'CAD', en_NZ: 'NZD',
@@ -39,10 +45,8 @@ const getCurrencySymbol = (): string => {
       android: NativeModules.I18nManager?.localeIdentifier ?? 'en_US',
       default: 'en_US',
     });
-    // Normalise: "en-GB" -> "en_GB"
     const normalised = locale.replace('-', '_');
     const currency = localeToCurrency[normalised] ?? 'USD';
-
     const formatter = new Intl.NumberFormat(normalised.replace('_', '-'), {
       style: 'currency',
       currency,
@@ -70,6 +74,60 @@ const formatPerUnit = (value: number): string => {
   return value.toFixed(4);
 };
 
+// Zigzag edge component
+// Top: triangles point UP (paper edge visible from above, background shows through gaps)
+// Bottom: triangles point DOWN (paper edge visible from below)
+const ZigzagEdge: React.FC<{color: string; position: 'top' | 'bottom'}> = ({color, position}) => {
+  const teeth = 35;
+  return (
+    <View style={zigzagStyles.container}>
+      <View style={zigzagStyles.row}>
+        {Array.from({length: teeth}).map((_, i) => (
+          <View
+            key={i}
+            style={
+              position === 'top'
+                ? {
+                    width: 0,
+                    height: 0,
+                    borderLeftWidth: 6,
+                    borderRightWidth: 6,
+                    borderBottomWidth: 6,
+                    borderStyle: 'solid' as const,
+                    borderBottomColor: color,
+                    borderLeftColor: 'transparent',
+                    borderRightColor: 'transparent',
+                  }
+                : {
+                    width: 0,
+                    height: 0,
+                    borderLeftWidth: 6,
+                    borderRightWidth: 6,
+                    borderTopWidth: 6,
+                    borderStyle: 'solid' as const,
+                    borderTopColor: color,
+                    borderLeftColor: 'transparent',
+                    borderRightColor: 'transparent',
+                  }
+            }
+          />
+        ))}
+      </View>
+    </View>
+  );
+};
+
+const zigzagStyles = StyleSheet.create({
+  container: {
+    overflow: 'hidden',
+    height: 6,
+  },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'center',
+  },
+});
+
 const CompareScreen: React.FC = () => {
   const {colors} = useTheme();
   const [priceA, setPriceA] = useState('');
@@ -96,7 +154,6 @@ const CompareScreen: React.FC = () => {
     const perUnitA = pA / uA;
     const perUnitB = pB / uB;
 
-    // Check for equality with small epsilon
     if (Math.abs(perUnitA - perUnitB) < 0.000001) {
       return {perUnitA, perUnitB, winner: 'equal', percentage: 0};
     }
@@ -121,7 +178,6 @@ const CompareScreen: React.FC = () => {
     return () => clearTimeout(timer);
   }, [calculate]);
 
-  // Show warning after an extra delay for large differences
   useEffect(() => {
     const isBigDifference =
       result !== null && result.percentage >= BIG_DIFFERENCE_THRESHOLD;
@@ -174,49 +230,79 @@ const CompareScreen: React.FC = () => {
       <ScrollView
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled">
-        <Text style={[styles.title, {color: colors.text}]}>ShelfSmart</Text>
 
-        <ProductCard
-          label="Product A"
-          price={priceA}
-          units={unitsA}
-          onPriceChange={setPriceA}
-          onUnitsChange={setUnitsA}
-          perUnit={result ? formatPerUnit(result.perUnitA) : undefined}
-          resultState={getResultState('A')}
-          stampPercentage={getStampPercentage('A')}
-          currencySymbol={currencySymbol}
-          priceRef={priceARef}
-          unitsRef={unitsARef}
-          onPriceSubmit={() => unitsARef.current?.focus()}
-          onUnitsSubmit={() => priceBRef.current?.focus()}
-        />
+        {/* Receipt paper */}
+        <View>
+          {/* Shadow layers */}
+          <View style={[styles.receiptShadow1, {backgroundColor: colors.receiptBackground}]} />
 
-        <ProductCard
-          label="Product B"
-          price={priceB}
-          units={unitsB}
-          onPriceChange={setPriceB}
-          onUnitsChange={setUnitsB}
-          perUnit={result ? formatPerUnit(result.perUnitB) : undefined}
-          resultState={getResultState('B')}
-          stampPercentage={getStampPercentage('B')}
-          currencySymbol={currencySymbol}
-          priceRef={priceBRef}
-          unitsRef={unitsBRef}
-          onPriceSubmit={() => unitsBRef.current?.focus()}
-          onUnitsSubmit={() => {}}
-        />
+          <ZigzagEdge color={colors.receiptBackground} position="top" />
 
-        <TouchableOpacity
-          style={[styles.clearButton, {backgroundColor: colors.clearButton}]}
-          onPress={handleClear}
-          activeOpacity={0.8}>
-          <Text style={[styles.clearButtonText, {color: colors.clearButtonText}]}>
-            Clear
-          </Text>
-        </TouchableOpacity>
+          <View style={[styles.receipt, {backgroundColor: colors.receiptBackground}]}>
+            {/* Receipt header */}
+            <Text style={[styles.shopName, {color: colors.receiptText}]}>
+              ShelfSmart
+            </Text>
+            <Text style={[styles.receiptSubtitle, {color: colors.receiptTextSecondary}]}>
+              PRICE COMPARISON
+            </Text>
+            <View style={[styles.thinLine, {backgroundColor: colors.receiptDash}]} />
+            <Text style={[styles.receiptDate, {color: colors.receiptTextSecondary, fontFamily: monoFont}]}>
+              {new Date().toLocaleDateString()}
+            </Text>
+            <View style={[styles.thickLine, {backgroundColor: colors.receiptText}]} />
 
+            {/* Product A */}
+            <ProductSection
+              label="Product A"
+              price={priceA}
+              units={unitsA}
+              onPriceChange={setPriceA}
+              onUnitsChange={setUnitsA}
+              perUnit={result ? formatPerUnit(result.perUnitA) : undefined}
+              resultState={getResultState('A')}
+              stampPercentage={getStampPercentage('A')}
+              currencySymbol={currencySymbol}
+              priceRef={priceARef}
+              unitsRef={unitsARef}
+              onPriceSubmit={() => unitsARef.current?.focus()}
+              onUnitsSubmit={() => priceBRef.current?.focus()}
+            />
+
+            <View style={[styles.thinLine, {backgroundColor: colors.receiptDash}]} />
+
+            {/* Product B */}
+            <ProductSection
+              label="Product B"
+              price={priceB}
+              units={unitsB}
+              onPriceChange={setPriceB}
+              onUnitsChange={setUnitsB}
+              perUnit={result ? formatPerUnit(result.perUnitB) : undefined}
+              resultState={getResultState('B')}
+              stampPercentage={getStampPercentage('B')}
+              currencySymbol={currencySymbol}
+              priceRef={priceBRef}
+              unitsRef={unitsBRef}
+              onPriceSubmit={() => unitsBRef.current?.focus()}
+              onUnitsSubmit={() => {}}
+            />
+
+            <View style={[styles.thickLine, {backgroundColor: colors.receiptText}]} />
+
+            {/* Thank you / Clear */}
+            <TouchableOpacity
+              style={[styles.thankYouButton, {borderColor: colors.receiptDash}]}
+              onPress={handleClear}
+              activeOpacity={0.6}>
+              <Text style={[styles.thankYouText, {color: colors.receiptText}]}>
+                CLEAR
+              </Text>
+            </TouchableOpacity>
+          </View>
+
+          <ZigzagEdge color={colors.receiptBackground} position="bottom" />
+        </View>
       </ScrollView>
 
       {showWarning && (
@@ -274,25 +360,68 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   scrollContent: {
-    padding: 20,
+    padding: 24,
     paddingBottom: 40,
   },
-  title: {
-    fontSize: 24,
-    fontWeight: '700',
-    textAlign: 'center',
-    marginBottom: 24,
-    marginTop: 8,
+  // rgba(0, 0, 0, 0.18) 0px 2px 4px
+  receiptShadow1: {
+    position: 'absolute',
+    top: 6,
+    left: 0,
+    right: 0,
+    bottom: 6,
+    shadowColor: '#000',
+    shadowOffset: {width: 0, height: 2},
+    shadowOpacity: 0.98,
+    shadowRadius: 4,
+    elevation: 4,
+    borderRadius: 2,
   },
-  clearButton: {
-    borderRadius: 12,
-    paddingVertical: 14,
-    alignItems: 'center',
+  receipt: {
+    paddingHorizontal: 20,
+    paddingVertical: 8,
+  },
+  shopName: {
+    fontSize: 26,
+    fontWeight: '800',
+    textAlign: 'center',
+    letterSpacing: 2,
     marginTop: 12,
   },
-  clearButtonText: {
-    fontSize: 16,
+  receiptSubtitle: {
+    fontSize: 11,
     fontWeight: '600',
+    textAlign: 'center',
+    letterSpacing: 3,
+    marginTop: 4,
+    marginBottom: 10,
+  },
+  receiptDate: {
+    fontSize: 11,
+    textAlign: 'center',
+    marginVertical: 6,
+  },
+  thinLine: {
+    height: 1,
+    marginVertical: 4,
+  },
+  thickLine: {
+    height: 2,
+    marginVertical: 8,
+  },
+  thankYouButton: {
+    borderWidth: 2,
+    borderStyle: 'dashed',
+    borderRadius: 4,
+    paddingVertical: 12,
+    alignItems: 'center',
+    marginTop: 4,
+    marginBottom: 12,
+  },
+  thankYouText: {
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 4,
   },
   dimOverlay: {
     ...StyleSheet.absoluteFillObject,

@@ -38,7 +38,7 @@ interface ThemeContextValue {
 }
 
 const lightColors: Colors = {
-  background: '#FFFFFF',
+  background: '#D6D2CB',
   card: '#F5F5F5',
   text: '#1F2937',
   textSecondary: '#6B7280',
@@ -66,7 +66,7 @@ const lightColors: Colors = {
 };
 
 const darkColors: Colors = {
-  background: '#1F2937',
+  background: '#111318',
   card: '#374151',
   text: '#F9FAFB',
   textSecondary: '#9CA3AF',
