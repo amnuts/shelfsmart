@@ -1,4 +1,4 @@
-import React, {useRef, useCallback} from 'react';
+import React, {useState, useRef, useCallback} from 'react';
 import {
   View,
   Text,
@@ -50,6 +50,8 @@ const ProductCard: React.FC<ProductCardProps> = ({
   const unitsAdvanceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const priceFocused = useRef(false);
   const unitsFocused = useRef(false);
+  const [priceFocusedState, setPriceFocusedState] = useState(false);
+  const [unitsFocusedState, setUnitsFocusedState] = useState(false);
 
   const AUTO_ADVANCE_DELAY = 800;
 
@@ -159,12 +161,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
                 color: colors.receiptText,
                 fontFamily: monoFont,
               },
+              priceFocusedState && styles.inputFocused,
             ]}
             value={price}
             onChangeText={handlePriceChange}
-            onFocus={() => { priceFocused.current = true; }}
+            onFocus={() => { priceFocused.current = true; setPriceFocusedState(true); }}
             onBlur={() => {
               priceFocused.current = false;
+              setPriceFocusedState(false);
               if (priceAdvanceTimer.current) clearTimeout(priceAdvanceTimer.current);
             }}
             keyboardType="decimal-pad"
@@ -191,12 +195,14 @@ const ProductCard: React.FC<ProductCardProps> = ({
               color: colors.receiptText,
               fontFamily: monoFont,
             },
+            unitsFocusedState && styles.inputFocused,
           ]}
           value={units}
           onChangeText={handleUnitsChange}
-          onFocus={() => { unitsFocused.current = true; }}
+          onFocus={() => { unitsFocused.current = true; setUnitsFocusedState(true); }}
           onBlur={() => {
             unitsFocused.current = false;
+            setUnitsFocusedState(false);
             if (unitsAdvanceTimer.current) clearTimeout(unitsAdvanceTimer.current);
           }}
           keyboardType="decimal-pad"
@@ -350,10 +356,15 @@ const styles = StyleSheet.create({
   input: {
     fontSize: 20,
     borderRadius: 6,
+    borderWidth: 1.5,
+    borderColor: 'transparent',
     paddingHorizontal: 10,
     paddingVertical: Platform.OS === 'ios' ? 10 : 6,
     textAlign: 'right',
     minWidth: 100,
+  },
+  inputFocused: {
+    borderColor: '#4D9DC4',
   },
   unitsInput: {
     flex: 0,
