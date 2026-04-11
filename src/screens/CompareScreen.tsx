@@ -7,17 +7,45 @@ import {
   StyleSheet,
   Animated,
   TextInput,
+  NativeModules,
+  Platform,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
 import ProductCard from '../components/ProductCard';
 import {useTheme} from '../context/ThemeContext';
 
+const localeToCurrency: Record<string, string> = {
+  en_US: 'USD', en_GB: 'GBP', en_AU: 'AUD', en_CA: 'CAD', en_NZ: 'NZD',
+  en_IE: 'EUR', en_SG: 'SGD', en_ZA: 'ZAR', en_IN: 'INR', en_HK: 'HKD',
+  de_DE: 'EUR', de_AT: 'EUR', de_CH: 'CHF',
+  fr_FR: 'EUR', fr_BE: 'EUR', fr_CH: 'CHF', fr_CA: 'CAD',
+  it_IT: 'EUR', es_ES: 'EUR', pt_PT: 'EUR', pt_BR: 'BRL',
+  nl_NL: 'EUR', nl_BE: 'EUR', fi_FI: 'EUR', el_GR: 'EUR',
+  ja_JP: 'JPY', ko_KR: 'KRW', zh_CN: 'CNY', zh_TW: 'TWD', zh_HK: 'HKD',
+  sv_SE: 'SEK', da_DK: 'DKK', nb_NO: 'NOK', nn_NO: 'NOK',
+  pl_PL: 'PLN', cs_CZ: 'CZK', hu_HU: 'HUF', ro_RO: 'RON',
+  tr_TR: 'TRY', th_TH: 'THB', vi_VN: 'VND', id_ID: 'IDR',
+  ms_MY: 'MYR', ar_SA: 'SAR', ar_AE: 'AED', he_IL: 'ILS',
+  ru_RU: 'RUB', uk_UA: 'UAH', bg_BG: 'BGN', hr_HR: 'EUR',
+  sk_SK: 'EUR', sl_SI: 'EUR', et_EE: 'EUR', lv_LV: 'EUR', lt_LT: 'EUR',
+  mt_MT: 'EUR', cy_GB: 'GBP',
+};
+
 const getCurrencySymbol = (): string => {
   try {
-    // Use Intl to detect locale currency symbol
-    const formatter = new Intl.NumberFormat(undefined, {
+    const locale = Platform.select({
+      ios: NativeModules.SettingsManager?.settings?.AppleLocale ??
+           NativeModules.SettingsManager?.settings?.AppleLanguages?.[0] ?? 'en_US',
+      android: NativeModules.I18nManager?.localeIdentifier ?? 'en_US',
+      default: 'en_US',
+    });
+    // Normalise: "en-GB" -> "en_GB"
+    const normalised = locale.replace('-', '_');
+    const currency = localeToCurrency[normalised] ?? 'USD';
+
+    const formatter = new Intl.NumberFormat(normalised.replace('_', '-'), {
       style: 'currency',
-      currency: 'USD', // fallback
+      currency,
       currencyDisplay: 'narrowSymbol',
     });
     const parts = formatter.formatToParts(0);
